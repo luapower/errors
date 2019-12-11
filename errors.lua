@@ -102,8 +102,11 @@ local function onerror(e)
 	end
 	return e
 end
+local function zpcall(f, ...)
+	return xpcall(f, onerror, ...)
+end
 local function catch(classes, f, ...)
-	return pass(classes, xpcall(f, onerror, f, ...))
+	return pass(classes, zpcall(f, ...))
 end
 
 local function check(class, v, ...)
@@ -117,7 +120,7 @@ local function pass(ok, ...)
 end
 local function protect(classes, f)
 	return function(...)
-		return pass(catch(classes, f(...)))
+		return pass(catch(classes, f, ...))
 	end
 end
 
@@ -128,6 +131,7 @@ local M = {
 	is = is_error_of,
 	raise = raise,
 	catch = catch,
+	pcall = zpcall,
 	check = check,
 	protect = protect,
 }
