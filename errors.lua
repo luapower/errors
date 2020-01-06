@@ -75,8 +75,12 @@ local function is_error_of(e, classes)
 	return is_error(e) and (not classes or class_table(classes)[e.__index])
 end
 
-function error:__call(...)
-	return object(self, {message = ... and string.format(...) or nil})
+function error:__call(arg1, ...)
+	if type(arg1) == 'table' then
+		return object(self, {message = ... and string.format(...) or nil}, arg1)
+	else
+		return object(self, {message = arg1 and string.format(arg1, ...) or nil})
+	end
 end
 
 function error:__tostring()
