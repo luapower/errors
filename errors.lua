@@ -84,7 +84,7 @@ function error:__tostring()
 end
 
 local function raise(...)
-	lua_error(error_object(...), 2)
+	lua_error((error_object(...)))
 end
 
 local function pass(classes, ok, ...)
@@ -93,7 +93,7 @@ local function pass(classes, ok, ...)
 	if is_error_of(e, classes) then
 		return false, e
 	end
-	lua_error(e, 2)
+	lua_error(e)
 end
 local function onerror(e)
 	if is_error(e) then
