@@ -92,10 +92,8 @@ end
 local function pass(classes, ok, ...)
 	if ok then return true, ... end
 	local e = ...
-	if not classes then
-		if not is_error(e) then --catch-all with non-object error: catch
-			return false, e
-		end
+	if not classes then --catch-all
+		return false, e
 	elseif is_error_of(e, classes) then
 		return false, e
 	end
