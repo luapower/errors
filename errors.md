@@ -24,7 +24,7 @@ most useful in network I/O contexts.
 `error.raise(class|classname,... | e)`               (create and) raise an error
 `error.catch(classes, f, ...) -> t,... | f,e`        pcall `f` and catch errors
 `error.pcall(f, ...) -> ...`                         pcall that stores traceback in `e.traceback`
-`error.check(class, v, ...) -> v | raise(class,...)` assert with specifying an error class
+`error.check(v, ...) -> v | raise(...)`              assert with specifying an error class
 `error.protect(classes, f) -> protected_f`           turn raising `f` into a `nil,e` function
 `eclass:__call(...) -> e`                            error class constructor
 `eclass:__tostring() -> s`                           to make `error(e)` work
