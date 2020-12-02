@@ -18,7 +18,8 @@ most useful in network I/O contexts.
 
 ---------------------------------------------------- -------------------------
 `errors.error`                                       base class for errors
-`errors.errortype([classname], [super]) -> eclass`   create an error class
+`errors.error:init()`                                stub: called after the error is created
+`errors.errortype([classname], [super]) -> eclass`   create/get an error class
 `eclass(...) -> e`                                   create an error object
 `errors.new(classname, [e], ... | e) -> e`           create/wrap/pass-through an error object
 `errors.is(v[, classes]) -> t|f`                     check an error object type

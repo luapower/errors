@@ -17,26 +17,29 @@ local classes = {} --{name -> class}
 local class_sets = {} --{'name1 name2 ...' -> {class->true}}
 local error --base error class, defined below.
 
-local function error_type(classname, super)
-	super = type(super) == 'string' and assert(classes[super]) or super or error
-	local class = object(super, {classname = classname, is_error = true})
-	if classname then
-		assert(not classes[classname], 'error class name already defined')
-		classes[classname] = class
-		class_sets = {}
+local function errortype(classname, super)
+	local class = classname and classes[classname]
+	if not class then
+		super = type(super) == 'string' and assert(classes[super]) or super or error
+		class = object(super, {classname = classname, iserror = true})
+		if classname then
+			classes[classname] = class
+			class_sets = {}
+		end
 	end
 	return class
 end
 
-error = error_type'error'
+error = errortype'error'
+error.init = function() end
 
-local function is_error(e)
-	return type(e) == 'table' and e.is_error
+local function iserror(e)
+	return type(e) == 'table' and e.iserror
 end
 
-local function error_object(arg, ...)
+local function newerror(arg, ...)
 	if type(arg) == 'string' then
-		local class = classes[arg] or error_type(arg)
+		local class = classes[arg] or errortype(arg)
 		return class(...)
 	end
 	return arg
@@ -63,21 +66,23 @@ local function class_table(s)
 	end
 end
 
-local function is_error_of(e, classes)
-	if not is_error(e) then return false end
+local function iserrorof(e, classes)
+	if not iserror(e) then return false end
 	if not classes then return true end
 	return class_table(classes)[e.__index] or false
 end
 
 function error:__call(arg1, ...)
+	local e
 	if type(arg1) == 'table' then
 		local message = ... and string.format(...) or nil
-		local e = object(self, arg1)
+		e = object(self, arg1)
 		e.message = message
-		return e
 	else
-		return object(self, {message = arg1 and string.format(arg1, ...) or nil})
+		e = object(self, {message = arg1 and string.format(arg1, ...) or nil})
 	end
+	e:init()
+	return e
 end
 
 function error:__tostring()
@@ -86,7 +91,7 @@ function error:__tostring()
 end
 
 local function raise(...)
-	lua_error((error_object(...)))
+	lua_error((newerror(...)))
 end
 
 local function pass(classes, ok, ...)
@@ -94,13 +99,13 @@ local function pass(classes, ok, ...)
 	local e = ...
 	if not classes then --catch-all
 		return false, e
-	elseif is_error_of(e, classes) then
+	elseif iserrorof(e, classes) then
 		return false, e
 	end
 	lua_error(e)
 end
 local function onerror(e)
-	if is_error(e) then
+	if iserror(e) then
 		e.traceback = debug.traceback(nil, 2)
 	end
 	return e
@@ -129,9 +134,9 @@ end
 
 local M = {
 	error = error,
-	errortype = error_type,
-	new = error_object,
-	is = is_error_of,
+	errortype = errortype,
+	new = newerror,
+	is = iserrorof,
 	raise = raise,
 	catch = catch,
 	pcall = zpcall,
