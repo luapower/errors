@@ -86,8 +86,7 @@ function error:__call(arg1, ...)
 end
 
 function error:__tostring()
-	return (self.message or self.classname)
-		..(self.traceback and '\n'..self.traceback or '')
+	return self.traceback or self.message or self.classname
 end
 
 local function raise(...)
@@ -106,7 +105,9 @@ local function pass(classes, ok, ...)
 end
 local function onerror(e)
 	if iserror(e) then
-		e.traceback = debug.traceback(nil, 2)
+		e.traceback = debug.traceback(e.message, 2)
+	else
+		return debug.traceback(e, 2)
 	end
 	return e
 end
