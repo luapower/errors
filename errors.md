@@ -30,6 +30,7 @@ most useful in network I/O contexts.
 `errors.protect(classes, f) -> protected_f`              turn raising `f` into a `nil,e` function
 `eclass:__call(...) -> e`                                error class constructor
 `eclass:__tostring() -> s`                               to make `error(e)` work
+`eclass.addtraceback`                                    add a traceback to errors
 `e.message`                                              formatted error message
 `e.traceback`                                            traceback at error site
 -------------------------------------------------------- ---------------------

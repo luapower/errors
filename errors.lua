@@ -75,9 +75,8 @@ end
 function error:__call(arg1, ...)
 	local e
 	if type(arg1) == 'table' then
-		local message = ... and string.format(...) or nil
 		e = object(self, arg1)
-		e.message = message
+		e.message = e.message or (... and string.format(...) or nil)
 	else
 		e = object(self, {message = arg1 and string.format(arg1, ...) or nil})
 	end
@@ -86,7 +85,11 @@ function error:__call(arg1, ...)
 end
 
 function error:__tostring()
-	return self.traceback or self.message or self.classname
+	local s = self.traceback or self.message or self.classname
+	if self.errorcode then
+		s = s .. ' ['..self.errorcode..']'
+	end
+	return s
 end
 
 local function raise(...)
@@ -105,7 +108,9 @@ local function pass(classes, ok, ...)
 end
 local function onerror(e)
 	if iserror(e) then
-		e.traceback = debug.traceback(e.message, 2)
+		if e.addtraceback then
+			e.traceback = debug.traceback(e.message, 2)
+		end
 	else
 		return debug.traceback(e, 2)
 	end
