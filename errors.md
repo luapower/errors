@@ -28,6 +28,7 @@ most useful in network I/O contexts.
 `errors.pcall(f, ...) -> ...`                            pcall that stores traceback in `e.traceback`
 `errors.check(v, ...) -> v | raise(...)`                 assert with specifying an error class
 `errors.protect(classes, f) -> protected_f`              turn raising `f` into a `nil,e` function
+`errors.wrap(f) -> wf`                                   add finally and except clauses to f
 `eclass:__call(...) -> e`                                error class constructor
 `eclass:__tostring() -> s`                               to make `error(e)` work
 `eclass.addtraceback`                                    add a traceback to errors

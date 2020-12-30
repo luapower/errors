@@ -138,6 +138,26 @@ local function protect(classes, f)
 	end
 end
 
+local function wrap(f,...)
+	local fint, errt = {}, {}
+	local function finally(f) fint[#fint+1] = f end
+	local function onerror(f) errt[#errt+1] = f end
+	local function err(e)
+		for i=#errt,1,-1 do errt[i](e) end
+		return debug.traceback(e, 2)
+	end
+	local function pass(ok, ...)
+		for i=#fint,1,-1 do fint[i]() end
+		if not ok then
+			error((...), 2)
+		end
+		return ...
+	end
+	return function(...)
+		return pass(zpcall(f, err, finally, onerror, ...))
+	end
+end
+
 local M = {
 	error = error,
 	errortype = errortype,
@@ -148,6 +168,7 @@ local M = {
 	pcall = zpcall,
 	check = check,
 	protect = protect,
+	wrap = wrap,
 }
 
 if not ... then
