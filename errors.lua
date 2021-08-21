@@ -138,7 +138,7 @@ local function protect(classes, f)
 	end
 end
 
-local M = {
+local errors = {
 	error = error,
 	errortype = errortype,
 	new = newerror,
@@ -150,9 +150,61 @@ local M = {
 	protect = protect,
 }
 
-if not ... then
+--[[--------------------------------------------------------------------------
 
-	local errors = M
+Errors raised with with check() and check_io() instead of assert() or error()
+enable methods wrapped with protect() to catch those errors, free temporary
+resources and return nil,err instead of raising.
+
+We distinguish between many types of errors:
+
+- input validation errors, which can be user-corrected so they mustn't raise.
+- invalid API usage, i.e. bugs on this side, which raise.
+- response validation errors, i.e. bugs on the other side which don't raise.
+- I/O errors, i.e. network failures which can be temporary and thus make the
+  call retriable, so they must be distinguishable from other types of errors.
+
+--]]--------------------------------------------------------------------------
+
+local tcp_error = errors.errortype'tcp'
+
+function tcp_error:init()
+	if self.tcp then
+		self.tcp:close(0)
+		self.tcp = nil
+	end
+end
+
+local function check_io(self, v, ...)
+	if v then return v, ... end
+	local err, errcode = ...
+	errors.raise(tcp_error{tcp = self and self.tcp, message = err, errorcode = errcode,
+		addtraceback = self and self.tracebacks})
+end
+
+errors.tcp_protocol_errors = function(protocol)
+
+	local prot_error = errors.errortype(protocol)
+
+	local function check(self, v, ...)
+		if v then return v, ... end
+		local err, errcode = ...
+		errors.raise(prot_error{tcp = self.tcp, message = err, errorcode = errcode,
+			addtraceback = self.tracebacks})
+	end
+
+	prot_error.init = tcp_error.init
+
+	local function protect(f)
+		return errors.protect('tcp '..protocol, f)
+	end
+
+	return check_io, check, protect
+end
+
+--self test ------------------------------------------------------------------
+
+if not ... then
 
 	local e1 = errors.errortype'e1'
 	local e2 = errors.errortype('e2', 'e1')
@@ -178,4 +230,4 @@ if not ... then
 
 end
 
-return M
+return errors
