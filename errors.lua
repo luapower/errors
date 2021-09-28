@@ -158,8 +158,9 @@ resources and return nil,err instead of raising.
 
 We distinguish between many types of errors:
 
-- input validation errors, which can be user-corrected so they mustn't raise.
-- invalid API usage, i.e. bugs on this side, which raise.
+- input validation errors, which can be user-corrected so mustn't raise.
+- invalid API usage, i.e. bugs on this side, which raise (but shouldn't
+  happen in production).
 - response validation errors, i.e. bugs on the other side which don't raise.
 - I/O errors, i.e. network failures which can be temporary and thus make the
   call retriable, so they must be distinguishable from other types of errors.
