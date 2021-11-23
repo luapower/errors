@@ -17,11 +17,12 @@ local classes = {} --{name -> class}
 local class_sets = {} --{'name1 name2 ...' -> {class->true}}
 local error --base error class, defined below.
 
-local function errortype(classname, super)
+local function errortype(classname, super, default_error_message)
 	local class = classname and classes[classname]
 	if not class then
 		super = type(super) == 'string' and assert(classes[super]) or super or error
-		class = object(super, {classname = classname, iserror = true})
+		class = object(super, {classname = classname, iserror = true,
+			default_error_message = default_error_message or classname .. ' error'})
 		if classname then
 			classes[classname] = class
 			class_sets = {}
@@ -85,7 +86,7 @@ function error:__call(arg1, ...)
 end
 
 function error:__tostring()
-	local s = self.traceback or self.message or self.classname
+	local s = self.traceback or self.message or self.default_error_message
 	if self.errorcode then
 		s = s .. ' ['..self.errorcode..']'
 	end
@@ -178,20 +179,22 @@ end
 
 local function check_io(self, v, ...)
 	if v then return v, ... end
-	local err, errcode = ...
-	errors.raise(tcp_error{tcp = self and self.tcp, message = err, errorcode = errcode,
-		addtraceback = self and self.tracebacks})
+	local e = tcp_error(...)
+	e.tcp = self and self.tcp
+	e.addtraceback = self and self.tracebacks
+	errors.raise(e)
 end
 
 errors.tcp_protocol_errors = function(protocol)
 
-	local prot_error = errors.errortype(protocol)
+	local prot_error = errors.errortype(protocol, nil, protocol .. ' protocol error')
 
 	local function check(self, v, ...)
 		if v then return v, ... end
-		local err, errcode = ...
-		errors.raise(prot_error{tcp = self.tcp, message = err, errorcode = errcode,
-			addtraceback = self.tracebacks})
+		local e = prot_error(...)
+		e.tcp = self.tcp
+		e.addtraceback = self.tracebacks
+		errors.raise(e)
 	end
 
 	prot_error.init = tcp_error.init
@@ -206,6 +209,15 @@ end
 --self test ------------------------------------------------------------------
 
 if not ... then
+
+	local check_io, check, protect = errors.tcp_protocol_errors'test'
+	local t = {}
+	t.test1 = protect(function(t) check(t, nil, 'see %d', 123) end)
+	t.test2 = protect(function(t) check_io(t, nil, 'see %d', 321) end)
+	t.test3 = protect(function(t) check(t) end)
+	print(t:test1())
+	print(t:test2())
+	print(t:test3())
 
 	local e1 = errors.errortype'e1'
 	local e2 = errors.errortype('e2', 'e1')
