@@ -78,7 +78,7 @@ local function merge_option_tables(e, arg1, ...)
 		for k,v in pairs(arg1) do e[k] = v end
 		return merge_option_tables(e, ...)
 	else
-		e.message = e.message or (... and string.format(...) or nil)
+		e.message = e.message or (arg1 and string.format(arg1, ...) or nil)
 		return e
 	end
 end
@@ -113,7 +113,7 @@ local function pass(classes, ok, ...)
 	elseif iserrorof(e, classes) then
 		return false, e
 	end
-	lua_error(e)
+	lua_error(e, 3)
 end
 local function onerror(e)
 	if iserror(e) then
