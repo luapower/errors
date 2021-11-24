@@ -54,8 +54,8 @@ after that are passed to `string.format()` and the result is placed in
 ### `errors.tcp_protocol_errors(protocol_name) -> check_io, checkp, check, protect`
 
 This is an error-handling discipline to use when writing TCP-based
-protocols. Use check(), checkp() and check_io() to raise errors inside
-protocol methods and then wrap those methods in protect() to catch those
+protocols. Use `check()`, `checkp()` and `check_io()` to raise errors inside
+protocol methods and then wrap those methods in `protect()` to catch those
 errors and have the method return `nil,err` instead of raising for those
 errors (but not for other kinds of errors).
 
