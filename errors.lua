@@ -159,33 +159,7 @@ local errors = {
 	protect = protect,
 }
 
---[[--------------------------------------------------------------------------
-
-The following is a error-handling mechanism to use when writing TCP-based
-protocols. Use check(), checkp() and check_io() to raise errors inside
-protocol methods and then wrap those methods in protect() to catch those
-errors and have the method return `nil,err` instead of raising for those
-errors (but not for other kinds of errors).
-
-You should distinguish between multiple types of errors:
-
-- Invalid API usage, i.e. bugs on this side, which should raise (but shouldn't
-  happen in production). Use assert() for those.
-- Response validation errors, i.e. bugs on the other side which shouldn't
-  raise but they put the connection in an inconsistent state so the connection
-  must be closed. Use checkp() short of "check protocol" for those.
-- Request or response content validation errors, which can be user-corrected
-  so mustn't raise and mustn't close the connection. Use check() for those.
-- I/O errors, i.e. network failures which can be temporary and thus make the
-  call retriable, so they must be distinguishable from other types of errors.
-  Use check_io() for those. On the call side then check the error class for
-  implementing retries.
-
-Following this protocol should easily cut your network code in half, increase
-its readability (no more error-handling noise) and its reliability (no more
-confusion about when to raise and when not to or forgetting to handle an error).
-
---]]--------------------------------------------------------------------------
+-- TCP protocol error handling -----------------------------------------------
 
 local tcp_error = errors.errortype'tcp'
 
