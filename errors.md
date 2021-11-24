@@ -53,11 +53,13 @@ after that are passed to `string.format()` and the result is placed in
 
 ### `errors.tcp_protocol_errors(protocol_name) -> check_io, checkp, check, protect`
 
+### `check[p|_io](self, val, error...) -> val`
+
 This is an error-handling discipline to use when writing TCP-based
-protocols. Use `check()`, `checkp()` and `check_io()` to raise errors inside
-protocol methods and then wrap those methods in `protect()` to catch those
-errors and have the method return `nil,err` instead of raising for those
-errors (but not for other kinds of errors).
+protocols. Instead of using standard `assert()` and `pcall()`, use `check()`,
+`checkp()` and `check_io()` to raise errors inside protocol methods and then
+wrap those methods in `protect()` to catch those errors and have the method
+return `nil, err` instead of raising for those types of errors.
 
 You should distinguish between multiple types of errors:
 
@@ -78,3 +80,12 @@ You should distinguish between multiple types of errors:
 Following this protocol should easily cut your network code in half, increase
 its readability (no more error-handling noise) and its reliability (no more
 confusion about when to raise and when not to or forgetting to handle an error).
+
+#### Other notes
+
+Your connection object must have a `tcp` field with a `tcp:close()` method
+that will be called by `check_io()` and `checkp()` (but not `check()`)
+on failure.
+
+`protect()` only protects from errors raised by `check*()`.
+Other Lua errors pass through.
