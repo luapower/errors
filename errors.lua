@@ -73,11 +73,19 @@ local function iserrorof(e, classes)
 	return class_table(classes)[e.__index] or false
 end
 
+local function merge_option_tables(e, arg1, ...)
+	if type(arg1) == 'table' then
+		for k,v in pairs(arg1) do e[k] = v end
+		return merge_option_tables(e, ...)
+	else
+		e.message = e.message or (... and string.format(...) or nil)
+		return e
+	end
+end
 function error:__call(arg1, ...)
 	local e
 	if type(arg1) == 'table' then
-		e = object(self, arg1)
-		e.message = e.message or (... and string.format(...) or nil)
+		e = merge_option_tables(object(self, arg1), ...)
 	else
 		e = object(self, {message = arg1 and string.format(arg1, ...) or nil})
 	end
@@ -153,18 +161,29 @@ local errors = {
 
 --[[--------------------------------------------------------------------------
 
-Errors raised with with check() and check_io() instead of assert() or error()
-enable methods wrapped with protect() to catch those errors, free temporary
-resources and return nil,err instead of raising.
+The following is a error-handling mechanism to use when writing TCP-based
+protocols. Use check(), checkp() and check_io() to raise errors inside
+protocol methods and then wrap those methods in protect() to catch those
+errors and have the method return `nil,err` instead of raising for those
+errors (but not for other kinds of errors).
 
-We distinguish between many types of errors:
+You should distinguish between multiple types of errors:
 
-- input validation errors, which can be user-corrected so mustn't raise.
-- invalid API usage, i.e. bugs on this side, which raise (but shouldn't
-  happen in production).
-- response validation errors, i.e. bugs on the other side which don't raise.
+- Invalid API usage, i.e. bugs on this side, which should raise (but shouldn't
+  happen in production). Use assert() for those.
+- Response validation errors, i.e. bugs on the other side which shouldn't
+  raise but they put the connection in an inconsistent state so the connection
+  must be closed. Use checkp() short of "check protocol" for those.
+- Request or response content validation errors, which can be user-corrected
+  so mustn't raise and mustn't close the connection. Use check() for those.
 - I/O errors, i.e. network failures which can be temporary and thus make the
   call retriable, so they must be distinguishable from other types of errors.
+  Use check_io() for those. On the call side then check the error class for
+  implementing retries.
+
+Following this protocol should easily cut your network code in half, increase
+its readability (no more error-handling noise) and its reliability (no more
+confusion about when to raise and when not to or forgetting to handle an error).
 
 --]]--------------------------------------------------------------------------
 
@@ -179,43 +198,54 @@ end
 
 local function check_io(self, v, ...)
 	if v then return v, ... end
-	local e = tcp_error(...)
-	e.tcp = self and self.tcp
-	e.addtraceback = self and self.tracebacks
-	errors.raise(e)
+	errors.raise(tcp_error({
+		tcp = self and self.tcp,
+		addtraceback = self and self.tracebacks,
+	}, ...))
 end
 
 errors.tcp_protocol_errors = function(protocol)
 
-	local prot_error = errors.errortype(protocol, nil, protocol .. ' protocol error')
+	local protocol_error = errors.errortype(protocol, nil, protocol .. ' protocol error')
+	local content_error  = errors.errortype(nil, nil, protocol .. ' error')
 
-	local function check(self, v, ...)
-		if v then return v, ... end
-		local e = prot_error(...)
-		e.tcp = self.tcp
-		e.addtraceback = self.tracebacks
-		errors.raise(e)
+	protocol_error.init = tcp_error.init
+
+	local function checker(create_error)
+		return function(self, v, ...)
+			if v then return v, ... end
+			errors.raise(create_error({
+				tcp = self and self.tcp,
+				addtraceback = self and self.tracebacks,
+			}, ...))
+		end
 	end
+	local checkp = checker(protocol_error)
+	local check  = checker(content_error)
 
-	prot_error.init = tcp_error.init
+	local classes = {[tcp_error]=1, [protocol_error]=1, [content_error]=1}
 
 	local function protect(f)
-		return errors.protect('tcp '..protocol, f)
+		return errors.protect(classes, f)
 	end
 
-	return check_io, check, protect
+	return check_io, checkp, check, protect
 end
 
 --self test ------------------------------------------------------------------
 
 if not ... then
 
-	local check_io, check, protect = errors.tcp_protocol_errors'test'
-	local t = {}
-	t.test1 = protect(function(t) check(t, nil, 'see %d', 123) end)
+	local check_io, checkp, check, protect = errors.tcp_protocol_errors'test'
+	local t = {tcp = {close = function(self) self.closed = true end}, tracebacks = false}
+	t.test0 = protect(function(t) check(t) end)
+	t.test1 = protect(function(t) checkp(t, nil, 'see %d', 123) end)
 	t.test2 = protect(function(t) check_io(t, nil, 'see %d', 321) end)
-	t.test3 = protect(function(t) check(t) end)
+	t.test3 = protect(function(t) checkp(t) end)
+	print(t:test0())
+	assert(not t.tcp.closed)
 	print(t:test1())
+	assert(t.tcp.closed)
 	print(t:test2())
 	print(t:test3())
 
