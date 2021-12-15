@@ -53,7 +53,7 @@ after that are passed to `string.format()` and the result is placed in
 
 ### `errors.tcp_protocol_errors(protocol_name) -> check_io, checkp, check, protect`
 
-### `check[p|_io](self, val, error...) -> val`
+### `check[p|_io](self, val, format, format_args...) -> val`
 
 This is an error-handling discipline to use when writing TCP-based
 protocols. Instead of using standard `assert()` and `pcall()`, use `check()`,
@@ -64,17 +64,17 @@ return `nil, err` instead of raising for those types of errors.
 You should distinguish between multiple types of errors:
 
 - Invalid API usage, i.e. bugs on this side, which should raise (but shouldn't
-  happen in production). Use assert() for those.
+  happen in production). Use `assert()` for those.
 - Response validation errors, i.e. bugs on the other side which shouldn't
   raise but they put the connection in an inconsistent state so the connection
-  must be closed. Use checkp() short of "check protocol" for those. Note that
+  must be closed. Use `checkp()` short of "check protocol" for those. Note that
   if your protocol is meant to work with a hostile or unstable peer, you can
   skip `checkp()` checks entirely because they won't guard against anything.
 - Request or response content validation errors, which can be user-corrected
-  so mustn't raise and mustn't close the connection. Use check() for those.
+  so mustn't raise and mustn't close the connection. Use `check()` for those.
 - I/O errors, i.e. network failures which can be temporary and thus make the
   call retriable, so they must be distinguishable from other types of errors.
-  Use check_io() for those. On the call side then check the error class for
+  Use `check_io()` for those. On the call side then check the error class for
   implementing retries.
 
 Following this protocol should easily cut your network code in half, increase
