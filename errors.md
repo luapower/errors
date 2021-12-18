@@ -68,8 +68,9 @@ You should distinguish between multiple types of errors:
 - Response validation errors, i.e. bugs on the other side which shouldn't
   raise but they put the connection in an inconsistent state so the connection
   must be closed. Use `checkp()` short of "check protocol" for those. Note that
-  if your protocol is meant to work with a hostile or unstable peer, you can
-  skip `checkp()` checks entirely because they won't guard against anything.
+  if your protocol is not meant to work with a hostile or unstable peer, you
+  can skip the `checkp()` checks entirely because they won't guard against
+  anything and just bloat the code.
 - Request or response content validation errors, which can be user-corrected
   so mustn't raise and mustn't close the connection. Use `check()` for those.
 - I/O errors, i.e. network failures which can be temporary and thus make the
